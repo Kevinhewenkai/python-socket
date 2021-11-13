@@ -59,18 +59,21 @@ for i in range(3):
         password = input("password: ")
         clientSocket.send(password.encode())
 
-while 1:
-    data = clientSocket.recv(1024)
-    receivedMessage = data.decode()
-    print(receivedMessage)
-
-    if receivedMessage == "no message since last visit":
-        break
-    elif receivedMessage == "that's all message since last visit":
-        break
-
 while True:
     while 1:
+        clientSocket.send("receive".encode())
+        while 1:
+            data = clientSocket.recv(1024)
+            receivedMessage = data.decode()
+            # print(receivedMessage)
+
+            if receivedMessage == "no message since last visit":
+                break
+            elif receivedMessage == "that's all message since last visit":
+                break
+            else:
+                print(receivedMessage)
+
         message = input(
             "===== Please type any messsage you want to send to server: =====\n")
         for word in message.split(" "):
@@ -84,7 +87,7 @@ while True:
     # 1024 is a suggested packet size, you can specify it as 2048 or others
     data = clientSocket.recv(1024)
     receivedMessage = data.decode()
-    print(receivedMessage)
+    print(receivedMessage + "\n")
 
     # parse the message received from server and take corresponding actions
     if receivedMessage == "":
@@ -93,8 +96,6 @@ while True:
         exit()
     elif receivedMessage == "[recv] sorry you are timeout":
         exit()
-    else:
-        print("[recv] Message makes no sense")
 
     ans = input('\nDo you want to continue(y/n) :')
     if ans == 'y':
@@ -104,3 +105,7 @@ while True:
 
 # close the socket
 clientSocket.close()
+
+# login
+# check the offline message
+# waiting for input and waiting for message

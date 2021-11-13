@@ -171,13 +171,14 @@ class ClientThread(Thread):
             self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             try:
-                self.showMessage(userName)
+                # self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
                 messageWords = message.split(" ")
             except:
-                onlineUser.remove(userName)
-                self.addEndTime(userName, startTime)
+                if userName in onlineUser:
+                    onlineUser.remove(userName)
+                    self.addEndTime(userName, startTime)
                 self.clientSocket.send("sorry you are timeout".encode())
 
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
@@ -237,12 +238,27 @@ class ClientThread(Thread):
                 if len(messageWords) != 1:
                     self.clientSocket.send("[error] whoelse".encode())
                 else:
-                    whoelseList = []
-                    for user in onlineUser:
-                        if user != userName and not self.isHeBlocked(userName, user):
-                            whoelseList.append(user)
+                    whoelseList = self.whoelseList(userName)
                     self.clientSocket.send(f"{whoelseList}".encode())
 
+            if messageWords[0] == "broadcast":
+                if len(messageWords) != 2:
+                    self.clientSocket.send(
+                        "[error] broadcast <message>".encode())
+                else:
+                    for user in self.whoelseList(userName):
+                        self.message(user, messageWords[1])
+                    self.clientSocket.send("broadcast successfully".encode())
+
+            if messageWords[0] == "receive":
+                self.showMessage(userName)
+
+            if messageWords[0] == "whoelsesince":
+                if len(messageWords) != 2:
+                    self.clientSocket.send(
+                        "[error] whoelsesince <time>".encode())
+                else:
+                    now = time.time()
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
         Each api can be used to handle one specific function, for example:
@@ -250,6 +266,13 @@ class ClientThread(Thread):
             message = 'user credentials request'
             self.clientSocket.send(message.encode())
     """
+
+    def whoelseList(self, userName):
+        whoelseList = []
+        for user in onlineUser:
+            if user != userName and not self.isHeBlocked(userName, user):
+                whoelseList.append(user)
+        return whoelseList
 
     def process_userName(self, inUserName):
         file = open(credentials, "r")
@@ -299,7 +322,8 @@ class ClientThread(Thread):
         f.close()
         return
 
-    def broadCast(self, message):
+    def broadCast(self, message, userName):
+
         return
 
     def showMessage(self, userName):
@@ -366,6 +390,9 @@ class ClientThread(Thread):
         f.close()
         return False
 
+    def whoelsesince(self, targetUserName, time):
+        return
+
 
 print("\n===== Server is running =====")
 print("===== Waiting for connection request from clients...=====")
@@ -377,3 +404,6 @@ while True:
     # lock.acquire()
     clientThread = ClientThread(clientAddress, clientSockt)
     clientThread.start()
+
+# setup
+# excuting the client command and notice new message
