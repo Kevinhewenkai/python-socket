@@ -198,14 +198,50 @@ class ClientThread(Thread):
             # message
             if messageWords[0] == "message":
                 if len(messageWords) != 3:
-                    self.clientSocket.send("message <user> <message>".encode)
+                    self.clientSocket.send(
+                        "[error] message <user> <message>".encode)
                 else:
                     if not self.isUserExist(messageWords[1]):
                         self.clientSocket.send("user not found".encode)
+                    elif self.isHeBlocked(userName, messageWords[1]):
+                        self.clientSocket.send(
+                            f"you have been blocked by {messageWords[1]}".encode())
                     else:
                         self.message(messageWords[1], messageWords[2])
                         self.clientSocket.send(
                             "message send successful".encode())
+
+            if messageWords[0] == "block":
+                if len(messageWords) != 2:
+                    self.clientSocket.send("[error] block <user>".encode)
+                else:
+                    if not self.isUserExist(messageWords[1]):
+                        self.clientSocket.send("user not found".encode)
+                    else:
+                        self.block(messageWords[1], userName)
+                        self.clientSocket.send(
+                            f"[recv] block {messageWords[1]} successfuly".encode())
+
+            if messageWords[0] == "unblock":
+                if len(messageWords) != 2:
+                    self.clientSocket.send("[error] unblock <user>".encode)
+                else:
+                    if not self.isUserExist(messageWords[1]):
+                        self.clientSocket.send("user not found".encode)
+                    else:
+                        self.unblock(messageWords[1], userName)
+                        self.clientSocket.send(
+                            f"[recv] unblock {messageWords[1]} successfuly".encode())
+
+            if messageWords[0] == "whoelse":
+                if len(messageWords) != 1:
+                    self.clientSocket.send("[error] whoelse".encode())
+                else:
+                    whoelseList = []
+                    for user in onlineUser:
+                        if user != userName and not self.isHeBlocked(userName, user):
+                            whoelseList.append(user)
+                    self.clientSocket.send(f"{whoelseList}".encode())
 
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
@@ -273,7 +309,8 @@ class ClientThread(Thread):
                 self.clientSocket.send("no message since last visit".encode())
             for message in data[userName]['message']:
                 self.clientSocket.send(f"[Message]:{ message }".encode())
-            self.clientSocket.send("that's all message".encode())
+            self.clientSocket.send(
+                "that's all message since last visit".encode())
             data[userName]['message'].clear()
             f.seek(0)
             json.dump(data, f, indent=4)
@@ -292,6 +329,42 @@ class ClientThread(Thread):
             f.truncate()
         f.close()
         return
+
+    def block(self, targetUserName, userName):
+        with open(userDataLoc, 'r+') as f:
+            data = json.load(f)
+            if self.isHeBlocked(targetUserName, userName):
+                self.clientSocket.send(
+                    f"{userName} has alreadly been blocked".encode())
+                return
+            data[userName]['blackList'].append(targetUserName)
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+        f.close()
+        return
+
+    def unblock(self, targetUserName, userName):
+        with open(userDataLoc, 'r+') as f:
+            data = json.load(f)
+            if not self.isHeBlocked(targetUserName, userName):
+                self.clientSocket.send(
+                    f"{userName} has not been blocked".encode())
+                return
+            data[userName]['blackList'].remove(targetUserName)
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+        f.close()
+        return
+
+    def isHeBlocked(self, targetUserName, userName):
+        with open(userDataLoc, 'r') as f:
+            data = json.load(f)
+            if targetUserName in data[userName]['blackList']:
+                return True
+        f.close()
+        return False
 
 
 print("\n===== Server is running =====")

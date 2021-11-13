@@ -66,7 +66,7 @@ while 1:
 
     if receivedMessage == "no message since last visit":
         break
-    elif receivedMessage == "that's all message":
+    elif receivedMessage == "that's all message since last visit":
         break
 
 while True:
@@ -92,7 +92,7 @@ while True:
     elif receivedMessage == "successfully logout":
         exit()
     elif receivedMessage == "[recv] sorry you are timeout":
-        break
+        exit()
     else:
         print("[recv] Message makes no sense")
 
