@@ -6,11 +6,14 @@
     Author: Wei Song (Tutor for COMP3331/9331)
 """
 import os
+import threading
 import time
 from socket import *
 import sys
 import help
 from threading import Thread
+
+lock = threading.Lock()
 
 
 class InputThread(Thread):
@@ -19,9 +22,9 @@ class InputThread(Thread):
         self.clientsocket = clientsocket
 
     def run(self):
-        time.sleep(0.1)
-        clientSocket.send("broadcast join the chat".encode())
-        time.sleep(0.1)
+        # global lock
+        # with lock:
+        #     clientSocket.send("broadcast join the chat\n".encode())
         while 1:
             message = input(
                 "===== Please type any messsage you want to send to server: =====\n")
@@ -46,11 +49,6 @@ class ReceiveServer(Thread):
                 print("sorry, you have timeout")
                 os._exit(1)
             receivedMessage = data.decode()
-            stripMessage = receivedMessage.strip()
-            if stripMessage == "no message since last visit":
-                continue
-            elif stripMessage == "that's all message since last visit":
-                continue
 
             print(receivedMessage + "\n")
 
@@ -71,9 +69,11 @@ class ReceiveMessage(Thread):
         self.clientsocket = clientsocket
 
     def run(self):
+        # global lock
         while 1:
-            self.clientsocket.sendall("receive".encode())
-            time.sleep(0.5)
+            with lock:
+                self.clientsocket.sendall("receive".encode())
+                time.sleep(1)
 
 
 # Server would be running on the same host as Client
@@ -131,6 +131,8 @@ for i in range(3):
 inputThread = InputThread(clientSocket)
 receiveServer = ReceiveServer(clientSocket)
 receiveMessage = ReceiveMessage(clientSocket)
+inputThread.start()
 receiveServer.start()
 receiveMessage.start()
-inputThread.start()
+with lock:
+    clientSocket.send("broadcast join the chat\n".encode())

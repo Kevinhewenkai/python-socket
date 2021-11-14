@@ -14,6 +14,8 @@ import sys
 import time
 import threading
 
+from help import receive
+
 # the imformation lists is here
 credentials = "credentials.txt"
 userDataLoc = "userData.json"
@@ -181,16 +183,18 @@ class ClientThread(Thread):
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
                 global noNewContent
-                if message != "receive":
-                    print(message)
+                if not message.startswith("receive"):
                     noNewContent = False
                 messageWords = message.split(" ")
             except:
                 if userName in onlineUser:
                     onlineUser.remove(userName)
                     self.addEndTime(userName, startTime)
-                self.clientSocket.send("sorry you are timeout".encode())
-                self.clientSocket.close()
+                try:
+                    self.clientSocket.send("sorry you are timeout".encode())
+                except:
+                    print("one client is timeout")
+                    break
 
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
             if message == '':
@@ -279,7 +283,10 @@ class ClientThread(Thread):
                     self.clientSocket.send(f"[whoelsesince] {list}".encode())
 
             else:
-                self.clientSocket.send("Sorry, I don't understand".encode())
+                if (not str(message).startswith("receive")):
+                    self.clientSocket.send(
+                        "Sorry, I don't understand".encode())
+                    print(message)
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
         Each api can be used to handle one specific function, for example:
@@ -336,10 +343,7 @@ class ClientThread(Thread):
     def message(self, userName, targetUser, message):
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
-            resultMessage = {
-                'message': message,
-                'from': userName
-            }
+            resultMessage = userName + " " + message
             data[targetUser]['message'].append(resultMessage)
             f.seek(0)
             json.dump(data, f, indent=4)
@@ -351,14 +355,15 @@ class ClientThread(Thread):
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
             if not data[userName]['message']:
-                self.clientSocket.send(
-                    "no message since last visit\n".encode())
+                return
             else:
                 for message in data[userName]['message']:
+                    splitmessage = message.split(" ")
+                    messageWord = ""
+                    for i in range(1, len(splitmessage)):
+                        messageWord = messageWord + splitmessage[i] + " "
                     self.clientSocket.send(
-                        f"[{message['from']}]:{ message['message'] }\n".encode())
-                self.clientSocket.send(
-                    "that's all message since last visit".encode())
+                        f"[{splitmessage[0]}]:{messageWord}\n".encode())
                 data[userName]['message'].clear()
                 f.seek(0)
                 json.dump(data, f, indent=4)
@@ -459,7 +464,11 @@ class TimeoutCounter(Thread):
             if noNewContent:
                 now = time.time()
                 if (now - startTime) > self.timeoutDur:
-                    self.clientSocket.send("sorry you are timeout".encode())
+                    try:
+                        self.clientSocket.send(
+                            "sorry you are timeout".encode())
+                    except:
+                        print("timeout")
                     timeout = True
                     time.sleep(0.1)
                     break
