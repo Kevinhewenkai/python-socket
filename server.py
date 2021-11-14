@@ -7,6 +7,7 @@
     Author: Wei Song (Tutor for COMP3331/9331)
 """
 import json
+import os
 from socket import *
 from threading import Thread
 import sys
@@ -26,6 +27,7 @@ userInfor = {
 # lock = threading.Lock()
 blockList = []
 onlineUser = []
+noNewContent = True
 
 # TODO: initialise the userData.json
 
@@ -167,15 +169,21 @@ class ClientThread(Thread):
         # the timeout start
         onlineUser.append(userName)
         message = ''
+        timeoutCounter = TimeoutCounter(timeoutDur, self.clientSocket)
+        timeoutCounter.start()
 
         while self.clientAlive:
 
-            self.clientSocket.settimeout(timeoutDur)
+            # self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             try:
                 # self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
+                global noNewContent
+                if message != "receive":
+                    print(message)
+                    noNewContent = False
                 messageWords = message.split(" ")
             except:
                 if userName in onlineUser:
@@ -435,6 +443,29 @@ class ClientThread(Thread):
                                 whoelsesinceList.append(user)
         f.close()
         return whoelsesinceList
+
+
+class TimeoutCounter(Thread):
+    def __init__(self, timeoutDur, clientSocket):
+        Thread.__init__(self)
+        self.clientSocket = clientSocket
+        self.timeoutDur = timeoutDur
+
+    def run(self):
+        startTime = time.time()
+        timeout = False
+        global noNewContent
+        while not timeout:
+            if noNewContent:
+                now = time.time()
+                if (now - startTime) > self.timeoutDur:
+                    self.clientSocket.send("sorry you are timeout".encode())
+                    timeout = True
+                    time.sleep(0.1)
+                    break
+            else:
+                noNewContent = True
+                startTime = time.time()
 
 
 print("\n===== Server is running =====")

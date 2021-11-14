@@ -19,7 +19,9 @@ class InputThread(Thread):
         self.clientsocket = clientsocket
 
     def run(self):
+        time.sleep(0.1)
         clientSocket.send("broadcast join the chat".encode())
+        time.sleep(0.1)
         while 1:
             message = input(
                 "===== Please type any messsage you want to send to server: =====\n")
@@ -71,7 +73,7 @@ class ReceiveMessage(Thread):
     def run(self):
         while 1:
             self.clientsocket.sendall("receive".encode())
-            time.sleep(0.1)
+            time.sleep(0.5)
 
 
 # Server would be running on the same host as Client
