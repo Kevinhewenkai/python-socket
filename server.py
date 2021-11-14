@@ -264,7 +264,7 @@ class ClientThread(Thread):
                     self.clientSocket.send(f"[whoelsesince] {list}".encode())
 
             else:
-                self.clientSocket.send("Sorry, I don't unserstand".encode())
+                self.clientSocket.send("Sorry, I don't understand".encode())
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
         Each api can be used to handle one specific function, for example:

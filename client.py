@@ -59,6 +59,9 @@ for i in range(3):
         password = input("password: ")
         clientSocket.send(password.encode())
 
+# # get the offline message
+# clientSocket.send("offline")
+
 while True:
     while 1:
         clientSocket.send("receive".encode())

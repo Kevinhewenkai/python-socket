@@ -2,22 +2,12 @@
     "kevin": {
         "message": [],
         "blackList": [],
-        "active_period": [
-            {
-                "start": 1636848919.6941605,
-                "end": 1636848919.69515
-            }
-        ]
+        "active_period": []
     },
     "kev": {
         "message": [],
         "blackList": [],
-        "active_period": [
-            {
-                "start": 1636848905.1099794,
-                "end": 1636848910.231319
-            }
-        ]
+        "active_period": []
     },
     "kelvin": {
         "message": [],
