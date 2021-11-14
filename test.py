@@ -25,12 +25,22 @@ def take_input():
 
 
 if __name__ == '__main__':
-    t1 = Thread(target=my_forever_while)
-    t2 = Thread(target=take_input)
+    # t1 = Thread(target=my_forever_while)
+    # t2 = Thread(target=take_input)
 
-    t1.start()
-    t2.start()
+    # t1.start()
+    # t2.start()
 
-    t2.join()  # interpreter will wait until your process get completed or terminated
-    thread_running = False
-    print('The end')
+    # t2.join()  # interpreter will wait until your process get completed or terminated
+    # thread_running = False
+    # print('The end')
+    list = []
+    file = open("credentials.txt", "r")
+    lines = file.readlines()
+
+    for line in lines:
+        userName, password = line.split(" ")
+        list.append(userName)
+
+    print(list)
+    file.close()

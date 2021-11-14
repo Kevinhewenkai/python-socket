@@ -44,6 +44,8 @@ serverAddress = (serverHost, serverPort)
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(serverAddress)
 
+serverStartTime = time.time()
+
 # initialise the userData.json
 with open(userDataLoc, 'r+') as f:
     f.truncate(0)
@@ -197,7 +199,7 @@ class ClientThread(Thread):
                 break
 
             # message
-            if messageWords[0] == "message":
+            elif messageWords[0] == "message":
                 if len(messageWords) != 3:
                     self.clientSocket.send(
                         "[error] message <user> <message>".encode)
@@ -212,7 +214,7 @@ class ClientThread(Thread):
                         self.clientSocket.send(
                             "message send successful".encode())
 
-            if messageWords[0] == "block":
+            elif messageWords[0] == "block":
                 if len(messageWords) != 2:
                     self.clientSocket.send("[error] block <user>".encode)
                 else:
@@ -223,7 +225,7 @@ class ClientThread(Thread):
                         self.clientSocket.send(
                             f"[recv] block {messageWords[1]} successfuly".encode())
 
-            if messageWords[0] == "unblock":
+            elif messageWords[0] == "unblock":
                 if len(messageWords) != 2:
                     self.clientSocket.send("[error] unblock <user>".encode)
                 else:
@@ -234,14 +236,14 @@ class ClientThread(Thread):
                         self.clientSocket.send(
                             f"[recv] unblock {messageWords[1]} successfuly".encode())
 
-            if messageWords[0] == "whoelse":
+            elif messageWords[0] == "whoelse":
                 if len(messageWords) != 1:
                     self.clientSocket.send("[error] whoelse".encode())
                 else:
                     whoelseList = self.whoelseList(userName)
-                    self.clientSocket.send(f"{whoelseList}".encode())
+                    self.clientSocket.send(f"[whoelse] {whoelseList}".encode())
 
-            if messageWords[0] == "broadcast":
+            elif messageWords[0] == "broadcast":
                 if len(messageWords) != 2:
                     self.clientSocket.send(
                         "[error] broadcast <message>".encode())
@@ -250,15 +252,19 @@ class ClientThread(Thread):
                         self.message(user, messageWords[1])
                     self.clientSocket.send("broadcast successfully".encode())
 
-            if messageWords[0] == "receive":
+            elif messageWords[0] == "receive":
                 self.showMessage(userName)
 
-            if messageWords[0] == "whoelsesince":
+            elif messageWords[0] == "whoelsesince":
                 if len(messageWords) != 2:
                     self.clientSocket.send(
                         "[error] whoelsesince <time>".encode())
                 else:
-                    now = time.time()
+                    list = self.whoelsesince(userName, float(messageWords[1]))
+                    self.clientSocket.send(f"[whoelsesince] {list}".encode())
+
+            else:
+                self.clientSocket.send("Sorry, I don't unserstand".encode())
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
         Each api can be used to handle one specific function, for example:
@@ -320,10 +326,6 @@ class ClientThread(Thread):
             json.dump(data, f, indent=4)
             f.truncate()
         f.close()
-        return
-
-    def broadCast(self, message, userName):
-
         return
 
     def showMessage(self, userName):
@@ -390,8 +392,35 @@ class ClientThread(Thread):
         f.close()
         return False
 
-    def whoelsesince(self, targetUserName, time):
-        return
+    def listAllUser(self):
+        list = []
+        file = open(credentials, "r")
+        lines = file.readlines()
+
+        for line in lines:
+            userName, password = line.split(" ")
+            list.append(userName)
+        file.close()
+        return list
+
+    def whoelsesince(self, targetUserName, pasttime):
+        now = time.time()
+        since = now - pasttime
+        whoelsesinceList = []
+        with open(userDataLoc, 'r') as f:
+            data = json.load(f)
+            if (serverStartTime > since):
+                for user in self.listAllUser():
+                    if data[user]['active_period']:
+                        whoelsesinceList.append(user)
+            else:
+                for user in self.listAllUser():
+                    if user != targetUserName and data[user]['active_period']:
+                        for period in data[user]['active_period']:
+                            if period['start'] < since and period['end'] > since:
+                                whoelsesinceList.append(user)
+        f.close()
+        return whoelsesinceList
 
 
 print("\n===== Server is running =====")
