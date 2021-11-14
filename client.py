@@ -5,9 +5,61 @@
     
     Author: Wei Song (Tutor for COMP3331/9331)
 """
+import os
+import time
 from socket import *
 import sys
 import help
+from threading import Thread
+
+
+class InputThread(Thread):
+    def __init__(self, clientsocket):
+        Thread.__init__(self)
+        self.clientsocket = clientsocket
+
+    def run(self):
+        while 1:
+            message = input(
+                "===== Please type any messsage you want to send to server: =====\n")
+            for word in message.split(" "):
+                if not help.checkText(word):
+                    print("invalid format")
+                    continue
+            self.clientsocket.sendall(message.encode())
+            time.sleep(0.1)
+
+
+class ReceiveServer(Thread):
+    def __init__(self, clientsocket):
+        Thread.__init__(self)
+        self.clientsocket = clientsocket
+
+    def run(self):
+        while 1:
+            try:
+                data = clientSocket.recv(1024)
+            except:
+                print("sorry, you have timeout")
+                os._exit(1)
+            receivedMessage = data.decode()
+            if receivedMessage == "no message since last visit":
+                continue
+            elif receivedMessage == "that's all message since last visit":
+                continue
+
+            print(receivedMessage + "\n")
+
+            # parse the message received from server and take corresponding actions
+            if receivedMessage == "":
+                print("[recv] Message from server is empty!")
+            elif receivedMessage == "successfully logout":
+                clientSocket.close()
+                os._exit(1)
+            elif receivedMessage == "sorry you are timeout":
+                clientSocket.close()
+                os._exit(1)
+
 
 # Server would be running on the same host as Client
 if len(sys.argv) != 3:
@@ -61,63 +113,7 @@ for i in range(3):
 
 # # get the offline message
 # clientSocket.send("offline")
-
-while True:
-    while 1:
-
-        message = input(
-            "===== Please type any messsage you want to send to server: =====\n")
-        for word in message.split(" "):
-            if not help.checkText(word):
-                print("invalid format")
-                continue
-        clientSocket.sendall(message.encode())
-        break
-
-    if message == "receive":
-        while 1:
-            data = clientSocket.recv(1024)
-            receivedMessage = data.decode()
-            receivedMessage = receivedMessage.strip()
-
-            if receivedMessage == "no message since last visit":
-                break
-            elif receivedMessage == "that's all message since last visit":
-                break
-            elif receivedMessage == "sorry you are timeout":
-                print(receivedMessage)
-                exit()
-            else:
-                print(receivedMessage)
-        continue
-
-    # receive response from the server
-    # 1024 is a suggested packet size, you can specify it as 2048 or others
-    try:
-        data = clientSocket.recv(1024)
-    except:
-        print("sorry, you have timeout")
-        exit()
-    receivedMessage = data.decode()
-    print(receivedMessage + "\n")
-
-    # parse the message received from server and take corresponding actions
-    if receivedMessage == "":
-        print("[recv] Message from server is empty!")
-    elif receivedMessage == "successfully logout":
-        exit()
-    elif receivedMessage == "sorry you are timeout":
-        exit()
-
-    ans = input('\nDo you want to continue(y/n) :')
-    if ans == 'y':
-        continue
-    else:
-        break
-
-# close the socket
-clientSocket.close()
-
-# login
-# check the offline message
-# waiting for input and waiting for message
+inputThread = InputThread(clientSocket)
+receiveServer = ReceiveServer(clientSocket)
+inputThread.start()
+receiveServer.start()

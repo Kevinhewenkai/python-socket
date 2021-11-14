@@ -173,6 +173,7 @@ class ClientThread(Thread):
             self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             try:
+                self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
                 messageWords = message.split(" ")
@@ -339,11 +340,12 @@ class ClientThread(Thread):
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
             if not data[userName]['message']:
-                self.clientSocket.send("no message since last visit".encode())
+                self.clientSocket.send(
+                    "no message since last visit\n".encode())
             else:
                 for message in data[userName]['message']:
                     self.clientSocket.send(
-                        f"[{message['from']}]:{ message['message'] }".encode())
+                        f"[{message['from']}]:{ message['message'] }\n".encode())
                 self.clientSocket.send(
                     "that's all message since last visit".encode())
                 data[userName]['message'].clear()

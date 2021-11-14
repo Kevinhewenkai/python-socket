@@ -25,5 +25,17 @@ def receive(clientSocket):
             exit()
         else:
             print(receivedMessage)
+
+
+def wating_input(clientSocket):
+    while 1:
+        message = input(
+            "===== Please type any messsage you want to send to server: =====\n")
+        for word in message.split(" "):
+            if not help.checkText(word):
+                print("invalid format")
+                continue
+        clientSocket.sendall(message.encode())
+        break
 # if __name__ == "__main__":
 #     print(checkText("kevin123~!@#\")——"))
