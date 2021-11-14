@@ -19,6 +19,7 @@ class InputThread(Thread):
         self.clientsocket = clientsocket
 
     def run(self):
+        clientSocket.send("broadcast join the chat".encode())
         while 1:
             message = input(
                 "===== Please type any messsage you want to send to server: =====\n")
@@ -128,6 +129,6 @@ for i in range(3):
 inputThread = InputThread(clientSocket)
 receiveServer = ReceiveServer(clientSocket)
 receiveMessage = ReceiveMessage(clientSocket)
-inputThread.start()
 receiveServer.start()
 receiveMessage.start()
+inputThread.start()
