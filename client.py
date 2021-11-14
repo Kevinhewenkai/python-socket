@@ -43,9 +43,10 @@ class ReceiveServer(Thread):
                 print("sorry, you have timeout")
                 os._exit(1)
             receivedMessage = data.decode()
-            if receivedMessage == "no message since last visit":
+            stripMessage = receivedMessage.strip()
+            if stripMessage == "no message since last visit":
                 continue
-            elif receivedMessage == "that's all message since last visit":
+            elif stripMessage == "that's all message since last visit":
                 continue
 
             print(receivedMessage + "\n")
@@ -59,6 +60,17 @@ class ReceiveServer(Thread):
             elif receivedMessage == "sorry you are timeout":
                 clientSocket.close()
                 os._exit(1)
+
+
+class ReceiveMessage(Thread):
+    def __init__(self, clientsocket):
+        Thread.__init__(self)
+        self.clientsocket = clientsocket
+
+    def run(self):
+        while 1:
+            self.clientsocket.sendall("receive".encode())
+            time.sleep(0.1)
 
 
 # Server would be running on the same host as Client
@@ -115,5 +127,7 @@ for i in range(3):
 # clientSocket.send("offline")
 inputThread = InputThread(clientSocket)
 receiveServer = ReceiveServer(clientSocket)
+receiveMessage = ReceiveMessage(clientSocket)
 inputThread.start()
 receiveServer.start()
+receiveMessage.start()

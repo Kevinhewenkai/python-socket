@@ -173,7 +173,7 @@ class ClientThread(Thread):
             self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             try:
-                self.showMessage(userName)
+                # self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
                 messageWords = message.split(" ")
@@ -248,12 +248,15 @@ class ClientThread(Thread):
                     self.clientSocket.send(f"[whoelse] {whoelseList}".encode())
 
             elif messageWords[0] == "broadcast":
-                if len(messageWords) != 2:
+                if len(messageWords) < 2:
                     self.clientSocket.send(
                         "[error] broadcast <message>".encode())
                 else:
+                    resultMessage = ""
+                    for i in range(1, len(messageWords)):
+                        resultMessage = resultMessage + " " + messageWords[i]
                     for user in self.whoelseList(userName):
-                        self.message(user, messageWords[1])
+                        self.message(userName, user, resultMessage)
                     self.clientSocket.send("broadcast successfully".encode())
 
             elif messageWords[0] == "receive":
@@ -437,11 +440,9 @@ class ClientThread(Thread):
 print("\n===== Server is running =====")
 print("===== Waiting for connection request from clients...=====")
 
-
 while True:
     serverSocket.listen()
     clientSockt, clientAddress = serverSocket.accept()
-    # lock.acquire()
     clientThread = ClientThread(clientAddress, clientSockt)
     clientThread.start()
 
