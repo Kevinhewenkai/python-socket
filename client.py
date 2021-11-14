@@ -64,18 +64,6 @@ for i in range(3):
 
 while True:
     while 1:
-        clientSocket.send("receive".encode())
-        while 1:
-            data = clientSocket.recv(1024)
-            receivedMessage = data.decode()
-            # print(receivedMessage)
-
-            if receivedMessage == "no message since last visit":
-                break
-            elif receivedMessage == "that's all message since last visit":
-                break
-            else:
-                print(receivedMessage)
 
         message = input(
             "===== Please type any messsage you want to send to server: =====\n")
@@ -83,12 +71,33 @@ while True:
             if not help.checkText(word):
                 print("invalid format")
                 continue
+        clientSocket.sendall(message.encode())
         break
-    clientSocket.sendall(message.encode())
+
+    if message == "receive":
+        while 1:
+            data = clientSocket.recv(1024)
+            receivedMessage = data.decode()
+            receivedMessage = receivedMessage.strip()
+
+            if receivedMessage == "no message since last visit":
+                break
+            elif receivedMessage == "that's all message since last visit":
+                break
+            elif receivedMessage == "sorry you are timeout":
+                print(receivedMessage)
+                exit()
+            else:
+                print(receivedMessage)
+        continue
 
     # receive response from the server
     # 1024 is a suggested packet size, you can specify it as 2048 or others
-    data = clientSocket.recv(1024)
+    try:
+        data = clientSocket.recv(1024)
+    except:
+        print("sorry, you have timeout")
+        exit()
     receivedMessage = data.decode()
     print(receivedMessage + "\n")
 
@@ -97,7 +106,7 @@ while True:
         print("[recv] Message from server is empty!")
     elif receivedMessage == "successfully logout":
         exit()
-    elif receivedMessage == "[recv] sorry you are timeout":
+    elif receivedMessage == "sorry you are timeout":
         exit()
 
     ans = input('\nDo you want to continue(y/n) :')

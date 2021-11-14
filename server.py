@@ -173,7 +173,6 @@ class ClientThread(Thread):
             self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             try:
-                # self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
                 messageWords = message.split(" ")
@@ -182,6 +181,7 @@ class ClientThread(Thread):
                     onlineUser.remove(userName)
                     self.addEndTime(userName, startTime)
                 self.clientSocket.send("sorry you are timeout".encode())
+                self.clientSocket.close()
 
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
             if message == '':
@@ -200,17 +200,20 @@ class ClientThread(Thread):
 
             # message
             elif messageWords[0] == "message":
-                if len(messageWords) != 3:
+                if len(messageWords) < 3:
                     self.clientSocket.send(
                         "[error] message <user> <message>".encode)
                 else:
+                    resultMessage = ""
+                    for i in range(2, len(messageWords)):
+                        resultMessage = resultMessage + " " + messageWords[i]
                     if not self.isUserExist(messageWords[1]):
                         self.clientSocket.send("user not found".encode)
                     elif self.isHeBlocked(userName, messageWords[1]):
                         self.clientSocket.send(
                             f"you have been blocked by {messageWords[1]}".encode())
                     else:
-                        self.message(messageWords[1], messageWords[2])
+                        self.message(userName, messageWords[1], resultMessage)
                         self.clientSocket.send(
                             "message send successful".encode())
 
@@ -318,10 +321,14 @@ class ClientThread(Thread):
             f.truncate()
         f.close()
 
-    def message(self, targetUser, message):
+    def message(self, userName, targetUser, message):
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
-            data[targetUser]['message'].append(message)
+            resultMessage = {
+                'message': message,
+                'from': userName
+            }
+            data[targetUser]['message'].append(resultMessage)
             f.seek(0)
             json.dump(data, f, indent=4)
             f.truncate()
@@ -331,16 +338,18 @@ class ClientThread(Thread):
     def showMessage(self, userName):
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
-            if data[userName]['message'] == None:
+            if not data[userName]['message']:
                 self.clientSocket.send("no message since last visit".encode())
-            for message in data[userName]['message']:
-                self.clientSocket.send(f"[Message]:{ message }".encode())
-            self.clientSocket.send(
-                "that's all message since last visit".encode())
-            data[userName]['message'].clear()
-            f.seek(0)
-            json.dump(data, f, indent=4)
-            f.truncate()
+            else:
+                for message in data[userName]['message']:
+                    self.clientSocket.send(
+                        f"[{message['from']}]:{ message['message'] }".encode())
+                self.clientSocket.send(
+                    "that's all message since last visit".encode())
+                data[userName]['message'].clear()
+                f.seek(0)
+                json.dump(data, f, indent=4)
+                f.truncate()
         f.close()
         return
 
