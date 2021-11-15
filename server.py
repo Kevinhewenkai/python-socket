@@ -489,35 +489,29 @@ class ClientThread(Thread):
             self.clientSocket.send(
                 "[error], user not online".encode())
             return
-        # ask for agreement
+        # tell the targetClient, ask for agreement
+        # send [private request]
         request = " [private request] " + userName + \
+            f" {self.clientAddress[0]}" + f" {self.clientAddress[1]}" + \
             " want to start a private connection"
         self.message(userName, targetuser, request)
+        # reached
+        # receive the answer
+        # if yes, get the port number
         while 1:
             targetuserThread = threads[targetuser]
             response = targetuserThread.receiveWords()
             if "yes" in response:
                 self.clientSocket.send(
                     "user accept private chat".encode())
-                port = 0
-                while 1:
-                    response = targetuserThread.receiveWords()
-                    if response.startswith("[port]"):
-                        port = response.split(" ")[1]
-                        break
                 with open(userDataLoc, 'r') as f:
                     data = json.load(f)
-                    user1Address = data[userName]['clientAddress']
                     user2Address = data[targetuser]['clientAddress']
-                    result1 = "[private response]: " + \
-                        userName + " " + \
-                        user1Address[0] + " " + str(port)
-                    result2 = "[private response]: " + \
+                    result2 = "[successful response]: " + \
                         targetuser + " " + \
-                        user2Address[0] + " " + str(port)
+                        user2Address[0] + " " + str(user2Address[1])
 
                     self.clientSocket.send(result2.encode())
-                    targetuserThread.messageWords(result1)
                 f.close()
                 break
             elif "no" in response:

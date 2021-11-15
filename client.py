@@ -20,6 +20,8 @@ privateChatSocket = {}
 privateContact = []
 existedPort = []
 user = ""
+host = ""
+port = ""
 
 
 class InputThread(Thread):
@@ -40,26 +42,45 @@ class InputThread(Thread):
                     continue
 
             words = message.split(" ")
-            if word[0] == "private":
+            # print(words)
+            if words[0] == "private":
+                print("if words[0] == 'private':")
                 if len(words) < 3:
                     print("[error], private <user> <message> ")
                     continue
                 targetuser = words[1]
                 if targetuser not in privateContact:
                     print("[error] please startprivate first")
+                outMessage = ""
+                for i in range(2, len(words)):
+                    outMessage = outMessage + " " + words[i]
+                # find the corresponding socket
+                print(privateChatSocket)
+                targetSocket = privateChatSocket[targetuser]
+                targetSocket.send(message.encode())
+                print("send successfully")
+                continue
 
+            # receive the notice from the receive thread
+            # give the server port number
             global privateMessage
             global user
+            global port
+            global host
+            # TODO delete
+            print(privateMessage)
             while (privateMessage):
                 if ("yes") in message:
-                    while True:
-                        portNum = random.randint(2001, 12000)
-                        if portNum not in existedPort:
-                            existedPort.append(portNum)
-                            break
-                    self.clientsocket.send("[private response] yes".encode())
-                    self.clientsocket.send(f"[port] {portNum}".encode())
+                    print("======here========")
+                    self.clientsocket.send(
+                        "[private response] yes".encode())
                     privateContact.append(user)
+                    # TODO reached, delete
+                    # create socket
+                    # newSocket = socket(AF_INET, SOCK_STREAM)
+                    # address = (host, int(port))
+                    # newSocket.bind(address)
+                    # privateChatSocket[user] = newSocket
                     # delete the duplicate
                     privateMessage = False
                 elif ("no") in message:
@@ -97,31 +118,38 @@ class ReceiveServer(Thread):
             elif receivedMessage == "sorry you are timeout":
                 clientSocket.close()
                 os._exit(1)
+            # get the first request
+            # tell the input thread
             elif "[private request]" in receivedMessage:
+                # reached
+                print("========get the first request========")
                 global privateMessage
                 global user
+                global host
+                global port
                 privateMessage = True
                 messageWords = receivedMessage.split(" ")
-                print(messageWords)
-                user = messageWords[messageWords.index(
-                    "request]") + 1]
-            elif receivedMessage.startswith("[private responce]"):
+                index = messageWords.index("request]")
+                user = messageWords[index + 1]
+                host = messageWords[index + 2]
+                port = messageWords[index + 3]
+            elif ("[successful response]") in receivedMessage:
+                print("==========[successful response]======")
                 messageWords = receivedMessage.split(" ")
-                privateUserName = messageWords[1]
-                privateHost = messageWords[2]
-                try:
-                    privatePort = int(messageWords[3])
-                except:
-                    print("not a int")
-                privateSocket = socket(AF_INET, SOCK_STREAM)
-                privateSocket.bind((privateHost, privatePort))
-                privateChatSocket[privateUserName] = privateSocket
-                privateContact.append(privateUserName)
+                index = messageWords.index("response]:")
+                name = messageWords[index + 1]
+                host = messageWords[index + 2]
+                port = messageWords[index + 3]
+                newSocket = socket(AF_INET, SOCK_STREAM)
+                address = (host, int(port))
+                newSocket.connect(address)
+                privateChatSocket[name] = newSocket
+                privateContact.append(name)
                 # delete the duplicate
-                privateContact = set(privateContact)
-                privateContact = list(privateContact)
                 # privateChatAddress[privateUserName] = privateAddress
                 # print(privateChatAddress)
+            else:
+                print(receivedMessage)
 
 
 class ReceiveMessage(Thread):
