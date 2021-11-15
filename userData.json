@@ -4,24 +4,27 @@
         "blackList": [],
         "active_period": [
             {
-                "start": 1636888288.38683,
-                "end": 1636888298.586872
+                "start": 1636936880.3047316,
+                "end": 1636936880.368702
             }
-        ]
+        ],
+        "socket": null
     },
     "kev": {
         "message": [],
         "blackList": [],
         "active_period": [
             {
-                "start": 1636888278.2728302,
-                "end": 1636888298.222875
+                "start": 1636936874.3997035,
+                "end": 1636936922.2548337
             }
-        ]
+        ],
+        "socket": null
     },
     "kelvin": {
         "message": [],
         "blackList": [],
-        "active_period": []
+        "active_period": [],
+        "socket": null
     }
 }

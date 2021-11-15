@@ -7,7 +7,6 @@
     Author: Wei Song (Tutor for COMP3331/9331)
 """
 import json
-import os
 from socket import *
 from threading import Thread
 import sys
@@ -61,7 +60,8 @@ with open(credentials, 'r+') as cf:
     userInfor = {
         'message': [],
         'blackList': [],
-        'active_period': []
+        'active_period': [],
+        'socket': None
     }
     lines = cf.readlines()
     for line in lines:
@@ -169,15 +169,25 @@ class ClientThread(Thread):
 
         # now assume the client enter the correct password
         # the timeout start
+        global onlineUser
         onlineUser.append(userName)
         message = ''
-        timeoutCounter = TimeoutCounter(timeoutDur, self.clientSocket)
+        timeoutCounter = TimeoutCounter(
+            timeoutDur, self.clientSocket, userName)
         timeoutCounter.start()
 
         while self.clientAlive:
-
             # self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
+            # delete the duplicate
+            result = []
+            seen = set()
+            for user in onlineUser:
+                if user not in seen:
+                    seen.add(user)
+                    result.append(user)
+
+            onlineUser = result
             try:
                 # self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
@@ -282,6 +292,15 @@ class ClientThread(Thread):
                     list = self.whoelsesince(userName, float(messageWords[1]))
                     self.clientSocket.send(f"[whoelsesince] {list}".encode())
 
+            elif messageWords[0] == "startprivate":
+                if len(messageWords) != 2:
+                    self.clientSocket.send(
+                        "[error] startprivate <user>".encode())
+                else:
+                    targetuser = messageWords[1]
+                    self.startprivate(targetuser, userName)
+                    return
+
             else:
                 if (not str(message).startswith("receive")):
                     self.clientSocket.send(
@@ -300,6 +319,8 @@ class ClientThread(Thread):
         for user in onlineUser:
             if user != userName and not self.isHeBlocked(userName, user):
                 whoelseList.append(user)
+        whoelseList = set(whoelseList)
+        whoelseList = list(whoelseList)
         return whoelseList
 
     def process_userName(self, inUserName):
@@ -352,11 +373,14 @@ class ClientThread(Thread):
         return
 
     def showMessage(self, userName):
+        time.sleep(0.1)
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
             if not data[userName]['message']:
                 return
             else:
+                messageNotice = data[userName]['message']
+                print(messageNotice)
                 for message in data[userName]['message']:
                     splitmessage = message.split(" ")
                     messageWord = ""
@@ -364,7 +388,7 @@ class ClientThread(Thread):
                         messageWord = messageWord + splitmessage[i] + " "
                     self.clientSocket.send(
                         f"[{splitmessage[0]}]:{messageWord}\n".encode())
-                data[userName]['message'].clear()
+                    data[userName]['message'].remove(message)
                 f.seek(0)
                 json.dump(data, f, indent=4)
                 f.truncate()
@@ -449,17 +473,50 @@ class ClientThread(Thread):
         f.close()
         return whoelsesinceList
 
+    def startprivate(self, targetuser, userName):
+        if not self.isUserExist(targetuser):
+            self.clientSocket.send(
+                "[error], user not exist".encode())
+            return
+        if self.isHeBlocked(userName, targetuser):
+            self.clientSocket.send(
+                f"[error], you have been blocked by {targetuser}".encode())
+            return
+        if targetuser not in onlineUser:
+            self.clientSocket.send(
+                "[error], user not online".encode())
+            return
+        # ask for agreement
+        request = "[private request] " + userName + \
+            " want to start a private connection"
+        self.message(userName, targetuser, request)
+        while 1:
+            response = self.clientSocket.recv(1024).decode()
+            if "yes" in response:
+                self.clientSocket.send(
+                    "user accept private chat".encode())
+                break
+            elif "no" in response:
+                self.clientSocket.send(
+                    "user reject private chat".encode())
+                break
+            else:
+                continue
+        return
+
 
 class TimeoutCounter(Thread):
-    def __init__(self, timeoutDur, clientSocket):
+    def __init__(self, timeoutDur, clientSocket, userName):
         Thread.__init__(self)
         self.clientSocket = clientSocket
         self.timeoutDur = timeoutDur
+        self.userName = userName
 
     def run(self):
         startTime = time.time()
         timeout = False
         global noNewContent
+        global onlineUser
         while not timeout:
             if noNewContent:
                 now = time.time()
@@ -467,6 +524,7 @@ class TimeoutCounter(Thread):
                     try:
                         self.clientSocket.send(
                             "sorry you are timeout".encode())
+                        onlineUser.remove(self.userName)
                     except:
                         print("timeout")
                     timeout = True

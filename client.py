@@ -14,6 +14,7 @@ import help
 from threading import Thread
 
 lock = threading.Lock()
+privateMessage = False
 
 
 class InputThread(Thread):
@@ -32,6 +33,18 @@ class InputThread(Thread):
                 if not help.checkText(word):
                     print("invalid format")
                     continue
+
+            global privateMessage
+            while (privateMessage):
+                if message.startswith("yes"):
+                    self.clientsocket.send("[private response] yes")
+                    privateMessage = False
+                elif message.startswith("no"):
+                    self.clientsocket.send("[private response] no")
+                    privateMessage = False
+                else:
+                    message = input("====please type yes or no====")
+
             self.clientsocket.sendall(message.encode())
             time.sleep(0.1)
 
@@ -61,6 +74,9 @@ class ReceiveServer(Thread):
             elif receivedMessage == "sorry you are timeout":
                 clientSocket.close()
                 os._exit(1)
+            elif receivedMessage.startswith("[private request]"):
+                global privateMessage
+                privateMessage = True
 
 
 class ReceiveMessage(Thread):
