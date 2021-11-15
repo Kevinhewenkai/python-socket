@@ -29,6 +29,7 @@ userInfor = {
 blockList = []
 onlineUser = []
 noNewContent = True
+threads = {}
 
 # TODO: initialise the userData.json
 
@@ -61,7 +62,7 @@ with open(credentials, 'r+') as cf:
         'message': [],
         'blackList': [],
         'active_period': [],
-        'socket': None
+        'clientAddress': None
     }
     lines = cf.readlines()
     for line in lines:
@@ -150,6 +151,8 @@ class ClientThread(Thread):
                         'end': time.time()
                     }
                     data[userName]['active_period'].append(newPeriod)
+                    data[userName]['clientAddress'] = clientAddress
+                    threads[userName] = self
                     f.seek(0)
                     json.dump(data, f, indent=4)
                     f.truncate()
@@ -491,10 +494,31 @@ class ClientThread(Thread):
             " want to start a private connection"
         self.message(userName, targetuser, request)
         while 1:
-            response = self.clientSocket.recv(1024).decode()
+            targetuserThread = threads[targetuser]
+            response = targetuserThread.receiveWords()
             if "yes" in response:
                 self.clientSocket.send(
                     "user accept private chat".encode())
+                port = 0
+                while 1:
+                    response = targetuserThread.receiveWords()
+                    if response.startswith("[port]"):
+                        port = response.split(" ")[1]
+                        break
+                with open(userDataLoc, 'r') as f:
+                    data = json.load(f)
+                    user1Address = data[userName]['clientAddress']
+                    user2Address = data[targetuser]['clientAddress']
+                    result1 = "[private response]: " + \
+                        userName + " " + \
+                        user1Address[0] + " " + str(port)
+                    result2 = "[private response]: " + \
+                        targetuser + " " + \
+                        user2Address[0] + " " + str(port)
+
+                    self.clientSocket.send(result2.encode())
+                    targetuserThread.messageWords(result1)
+                f.close()
                 break
             elif "no" in response:
                 self.clientSocket.send(
@@ -503,6 +527,13 @@ class ClientThread(Thread):
             else:
                 continue
         return
+
+    def receiveWords(self):
+        response = self.clientSocket.recv(1024).decode()
+        return response
+
+    def messageWords(self, message):
+        self.clientSocket.send(message.encode())
 
 
 class TimeoutCounter(Thread):

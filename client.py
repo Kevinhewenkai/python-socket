@@ -10,11 +10,14 @@ import threading
 import time
 from socket import *
 import sys
+import random
 import help
 from threading import Thread
 
 lock = threading.Lock()
 privateMessage = False
+privateChatSocket = {}
+existedPort = []
 
 
 class InputThread(Thread):
@@ -36,11 +39,17 @@ class InputThread(Thread):
 
             global privateMessage
             while (privateMessage):
-                if message.startswith("yes"):
-                    self.clientsocket.send("[private response] yes")
+                if ("yes") in message:
+                    while True:
+                        portNum = random.randint(2001, 12000)
+                        if portNum not in existedPort:
+                            existedPort.append(portNum)
+                            break
+                    self.clientsocket.send("[private response] yes".encode())
+                    self.clientsocket.send(f"[port] {portNum}".encode())
                     privateMessage = False
-                elif message.startswith("no"):
-                    self.clientsocket.send("[private response] no")
+                elif ("no") in message:
+                    self.clientsocket.send("[private response] no".encode())
                     privateMessage = False
                 else:
                     message = input("====please type yes or no====")
@@ -74,9 +83,22 @@ class ReceiveServer(Thread):
             elif receivedMessage == "sorry you are timeout":
                 clientSocket.close()
                 os._exit(1)
-            elif receivedMessage.startswith("[private request]"):
+            elif "[private request]" in receivedMessage:
                 global privateMessage
                 privateMessage = True
+            elif receivedMessage.startswith("[private responce]"):
+                messageWords = receivedMessage.split(" ")
+                privateUserName = messageWords[1]
+                privateHost = messageWords[2]
+                try:
+                    privatePort = int(messageWords[3])
+                except:
+                    print("not a int")
+                privateSocket = socket(AF_INET, SOCK_STREAM)
+                privateSocket.bind((privateHost, privatePort))
+                privateChatSocket[privateUserName] = privateSocket
+                # privateChatAddress[privateUserName] = privateAddress
+                # print(privateChatAddress)
 
 
 class ReceiveMessage(Thread):
