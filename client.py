@@ -17,7 +17,9 @@ from threading import Thread
 lock = threading.Lock()
 privateMessage = False
 privateChatSocket = {}
+privateContact = []
 existedPort = []
+user = ""
 
 
 class InputThread(Thread):
@@ -37,7 +39,17 @@ class InputThread(Thread):
                     print("invalid format")
                     continue
 
+            words = message.split(" ")
+            if word[0] == "private":
+                if len(words) < 3:
+                    print("[error], private <user> <message> ")
+                    continue
+                targetuser = words[1]
+                if targetuser not in privateContact:
+                    print("[error] please startprivate first")
+
             global privateMessage
+            global user
             while (privateMessage):
                 if ("yes") in message:
                     while True:
@@ -47,6 +59,8 @@ class InputThread(Thread):
                             break
                     self.clientsocket.send("[private response] yes".encode())
                     self.clientsocket.send(f"[port] {portNum}".encode())
+                    privateContact.append(user)
+                    # delete the duplicate
                     privateMessage = False
                 elif ("no") in message:
                     self.clientsocket.send("[private response] no".encode())
@@ -85,7 +99,12 @@ class ReceiveServer(Thread):
                 os._exit(1)
             elif "[private request]" in receivedMessage:
                 global privateMessage
+                global user
                 privateMessage = True
+                messageWords = receivedMessage.split(" ")
+                print(messageWords)
+                user = messageWords[messageWords.index(
+                    "request]") + 1]
             elif receivedMessage.startswith("[private responce]"):
                 messageWords = receivedMessage.split(" ")
                 privateUserName = messageWords[1]
@@ -97,6 +116,10 @@ class ReceiveServer(Thread):
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 privateSocket.bind((privateHost, privatePort))
                 privateChatSocket[privateUserName] = privateSocket
+                privateContact.append(privateUserName)
+                # delete the duplicate
+                privateContact = set(privateContact)
+                privateContact = list(privateContact)
                 # privateChatAddress[privateUserName] = privateAddress
                 # print(privateChatAddress)
 

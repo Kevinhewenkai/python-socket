@@ -490,7 +490,7 @@ class ClientThread(Thread):
                 "[error], user not online".encode())
             return
         # ask for agreement
-        request = "[private request] " + userName + \
+        request = " [private request] " + userName + \
             " want to start a private connection"
         self.message(userName, targetuser, request)
         while 1:
