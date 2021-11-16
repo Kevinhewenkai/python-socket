@@ -188,7 +188,6 @@ class ClientThread(Thread):
             self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             # delete the duplicate
-            print(onlineUser)
             try:
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
@@ -498,14 +497,13 @@ class ClientThread(Thread):
         request = " [private request] " + userName + \
             f" {self.clientAddress[0]}" + f" {self.clientAddress[1]}" + \
             " want to start a private connection"
-        # TODO
-        self.message(userName, targetuser, request)
-        # reached
+        threads[targetuser].messageWords(request)
         # receive the answer
         # if yes, get the port number
         while 1:
             targetuserThread = threads[targetuser]
             response = targetuserThread.receiveWords()
+            print(response)
             if "yes" in response:
                 self.clientSocket.send(
                     "user accept private chat".encode())

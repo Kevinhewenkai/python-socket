@@ -68,14 +68,13 @@ class InputThread(Thread):
             global port
             global host
             # TODO delete
-            print(privateMessage)
+            # print(privateMessage)
             while (privateMessage):
                 if ("yes") in message:
                     print("======here========")
                     self.clientsocket.send(
                         "[private response] yes".encode())
                     privateContact.append(user)
-                    # TODO reached, delete
                     # create socket
                     # newSocket = socket(AF_INET, SOCK_STREAM)
                     # address = (host, int(port))
@@ -148,8 +147,8 @@ class ReceiveServer(Thread):
                 # delete the duplicate
                 # privateChatAddress[privateUserName] = privateAddress
                 # print(privateChatAddress)
-            else:
-                print(receivedMessage)
+            # else:
+                # print(receivedMessage)
 
 
 # Server would be running on the same host as Client
