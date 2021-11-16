@@ -317,7 +317,7 @@ class ClientThread(Thread):
                 connectSocketUser = messageWords[2]
                 host = messageWords[3]
                 port = self.generatePort()
-                self.noticeConnectPort(createSocketUser, port, host)
+                self.noticeCreatePort(createSocketUser, port, host)
                 self.noticeConnectPort(connectSocketUser, port, host)
 
             elif messageWords[0] == "[responseN]":

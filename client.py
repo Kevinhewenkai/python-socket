@@ -140,12 +140,12 @@ class ReceiveServer(Thread):
                 user2 = messageWords[index + 4]
             elif "[portCreate]" in receivedMessage:
                 messageWords = receivedMessage.split(" ")
-                index = messageWords.index("[portCreate]:")
+                index = messageWords.index("[portCreate]")
                 privateport = messageWords[index + 1]
                 privatehost = messageWords[index + 2]
                 # TODO
                 privateSocket = socket(AF_INET, SOCK_STREAM)
-                address = (privatehost, privateport)
+                address = (privatehost, int(privateport))
                 print(address)
                 privateSocket.bind(address)
                 privateSocket.listen(1)
@@ -159,7 +159,7 @@ class ReceiveServer(Thread):
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
                 print(address)
-                clientSocket.connect(address)
+                privateSocket.connect(address)
                 # delete the duplicate
                 # privateChatAddress[privateUserName] = privateAddress
                 # print(privateChatAddress)
