@@ -143,25 +143,31 @@ class ReceiveServer(Thread):
                 index = messageWords.index("[portCreate]")
                 privateport = messageWords[index + 1]
                 privatehost = messageWords[index + 2]
+                targetUserName = messageWords[index + 3]
                 # TODO
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
                 print(address)
                 privateSocket.bind(address)
                 privateSocket.listen(1)
-                clientSockt, clientAddress = privateSocket.accept()
+                csocket, clientAddress = privateSocket.accept()
+                privateChatSocket[targetUserName] = csocket
             elif "[portConnect]" in receivedMessage:
                 time.sleep(0.1)
                 messageWords = receivedMessage.split(" ")
                 index = messageWords.index("[portConnect]")
                 privateport = messageWords[index + 1]
                 privatehost = messageWords[index + 2]
+                targetUserName = messageWords[index + 3]
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
                 print(address)
                 privateSocket.connect(address)
+                privateChatSocket[targetUserName] = privateSocket
+                newThread = ReceiveServer(privateSocket)
+                newThread.start()
+                # privateChatAddress[privateUserName] = priva
                 # delete the duplicate
-                # privateChatAddress[privateUserName] = privateAddress
                 # print(privateChatAddress)
             # else:
                 # print(receivedMessage)

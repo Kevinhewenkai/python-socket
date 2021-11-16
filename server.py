@@ -317,8 +317,10 @@ class ClientThread(Thread):
                 connectSocketUser = messageWords[2]
                 host = messageWords[3]
                 port = self.generatePort()
-                self.noticeCreatePort(createSocketUser, port, host)
-                self.noticeConnectPort(connectSocketUser, port, host)
+                self.noticeCreatePort(
+                    createSocketUser, port, host, connectSocketUser)
+                self.noticeConnectPort(
+                    connectSocketUser, port, host, createSocketUser)
 
             elif messageWords[0] == "[responseN]":
                 threads[createSocketUser].messageWords(
@@ -522,11 +524,13 @@ class ClientThread(Thread):
             if privateport not in usedPort:
                 return privateport
 
-    def noticeCreatePort(self, userName, port, host):
-        threads[userName].messageWords(f"[portCreate] {port} {host}")
+    def noticeCreatePort(self, userName, port, host, targetuser):
+        threads[userName].messageWords(
+            f"[portCreate] {port} {host} {targetuser}")
 
-    def noticeConnectPort(self, userName, port, host):
-        threads[userName].messageWords(f"[portConnect] {port} {host}")
+    def noticeConnectPort(self, userName, port, host, targetuser):
+        threads[userName].messageWords(
+            f"[portConnect] {port} {host} {targetuser}")
 
     def receiveWords(self):
         response = self.clientSocket.recv(1024).decode()
