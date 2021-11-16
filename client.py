@@ -26,9 +26,10 @@ port = ""
 
 
 class InputThread(Thread):
-    def __init__(self, clientsocket):
+    def __init__(self, clientsocket, userName):
         Thread.__init__(self)
         self.clientsocket = clientsocket
+        self.username = userName
 
     def run(self):
         global lock
@@ -59,18 +60,10 @@ class InputThread(Thread):
                 targetSocket = privateChatSocket[targetuser]
                 print(targetSocket)
                 with lock:
-                    targetSocket.send(f"[private] {outMessage}".encode())
+                    targetSocket.send(
+                        f"[{self.username}][private] {outMessage}".encode())
                 print("send successfully")
                 continue
-            # TODO
-            #     privateSocket = None
-            #     privateport = random.randint(2001, 12000)
-            #     privateSocket = socket(AF_INET, SOCK_STREAM)
-            #     address = (self.clientAddress[0], port)
-            #     privateSocket.bind(address)
-            #     privateSocket.listen()
-            #     clientSockt, clientAddress = privateSocket.accept()
-            #     threads[targetuser].messageWords(f"[socket] {clientAddress[0]} {clientAddress[1]}")
 
             # receive the notice from the receive thread
             # give the server port number
@@ -79,7 +72,6 @@ class InputThread(Thread):
             global user2
             while (privateMessage):
                 if ("yes") in message:
-                    print("======here========")
                     with lock:
                         self.clientsocket.send(
                             f"[responseY] {user1} {user2} {host}".encode())
@@ -246,7 +238,7 @@ for i in range(3):
 
 # # get the offline message
 # clientSocket.send("offline")
-inputThread = InputThread(clientSocket)
+inputThread = InputThread(clientSocket, userName)
 receiveServer = ReceiveServer(clientSocket)
 inputThread.start()
 receiveServer.start()
