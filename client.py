@@ -56,10 +56,10 @@ class InputThread(Thread):
                 for i in range(2, len(words)):
                     outMessage = outMessage + " " + words[i]
                 # find the corresponding socket
-                print(privateChatSocket)
                 targetSocket = privateChatSocket[targetuser]
+                print(targetSocket)
                 with lock:
-                    targetSocket.send(message.encode())
+                    targetSocket.send(f"[private] {outMessage}".encode())
                 print("send successfully")
                 continue
             # TODO
@@ -152,6 +152,9 @@ class ReceiveServer(Thread):
                 privateSocket.listen(1)
                 csocket, clientAddress = privateSocket.accept()
                 privateChatSocket[targetUserName] = csocket
+                while 1:
+                    data = csocket.recv(1024).decode()
+                    print(data)
             elif "[portConnect]" in receivedMessage:
                 time.sleep(0.1)
                 messageWords = receivedMessage.split(" ")
@@ -164,13 +167,26 @@ class ReceiveServer(Thread):
                 print(address)
                 privateSocket.connect(address)
                 privateChatSocket[targetUserName] = privateSocket
-                newThread = ReceiveServer(privateSocket)
-                newThread.start()
+                while 1:
+                    data = privateSocket.recv(1024).decode()
+                    print(data)
                 # privateChatAddress[privateUserName] = priva
                 # delete the duplicate
                 # print(privateChatAddress)
             # else:
                 # print(receivedMessage)
+
+
+class PrivateReceiveServer(Thread):
+    def __init__(self, sourceSocket, privateSocket):
+        Thread.__init__(self)
+        self.sourceSocket = sourceSocket
+        self.privateSocket = privateSocket
+
+    def run(self):
+        while 1:
+            data = self.privateSocket.recv(1024)
+            self.sourceSocket.send(data)
 
 
 # Server would be running on the same host as Client
