@@ -7,6 +7,7 @@
     Author: Wei Song (Tutor for COMP3331/9331)
 """
 import json
+import random
 from socket import *
 from threading import Thread
 import sys
@@ -28,6 +29,7 @@ blockList = []
 onlineUser = []
 noNewContent = True
 threads = {}
+usedPort = []
 
 # TODO: initialise the userData.json
 
@@ -38,6 +40,7 @@ if len(sys.argv) != 4:
     exit(0)
 serverHost = "127.0.0.1"
 serverPort = int(sys.argv[1])
+usedPort.append(serverPort)
 blockTime = int(sys.argv[2])
 timeoutDur = int(sys.argv[3])
 serverAddress = (serverHost, serverPort)
@@ -87,6 +90,7 @@ class ClientThread(Thread):
     def __init__(self, clientAddress, clientSocket):
         Thread.__init__(self)
         self.clientAddress = clientAddress
+        usedPort.append(clientAddress[1])
         self.clientSocket = clientSocket
         self.clientAlive = False
 
@@ -304,8 +308,21 @@ class ClientThread(Thread):
                         "[error] startprivate <user>".encode())
                 else:
                     targetuser = messageWords[1]
+                    # simple tell the user someone want to join
                     self.startprivate(targetuser, userName)
                     return
+
+            elif messageWords[0] == "[responseY]":
+                createSocketUser = messageWords[1]
+                connectSocketUser = messageWords[2]
+                host = messageWords[3]
+                port = self.generatePort()
+                self.noticeConnectPort(createSocketUser, port, host)
+                self.noticeConnectPort(connectSocketUser, port, host)
+
+            elif messageWords[0] == "[responseN]":
+                threads[createSocketUser].messageWords(
+                    "the user reject private connection")
 
             else:
                 # if (not str(message).startswith("receive")):
@@ -494,36 +511,22 @@ class ClientThread(Thread):
             return
         # tell the targetClient, ask for agreement
         # send [private request]
-        request = " [private request] " + userName + \
-            f" {self.clientAddress[0]}" + f" {self.clientAddress[1]}" + \
-            " want to start a private connection"
-        threads[targetuser].messageWords(request)
-        # receive the answer
-        # if yes, get the port number
-        while 1:
-            targetuserThread = threads[targetuser]
-            response = targetuserThread.receiveWords()
-            print(response)
-            if "yes" in response:
-                self.clientSocket.send(
-                    "user accept private chat".encode())
-                with open(userDataLoc, 'r') as f:
-                    data = json.load(f)
-                    user2Address = data[targetuser]['clientAddress']
-                    result2 = "[successful response]: " + \
-                        targetuser + " " + \
-                        user2Address[0] + " " + str(user2Address[1])
+        # TODO random a port number and create a socket then this socket will keep listening
 
-                    self.clientSocket.send(result2.encode())
-                f.close()
-                break
-            elif "no" in response:
-                self.clientSocket.send(
-                    "user reject private chat".encode())
-                break
-            else:
-                continue
-        return
+        request = f" [private request] {userName} {self.clientAddress[0]} -> {targetuser}"
+        threads[targetuser].messageWords(request)
+
+    def generatePort(self):
+        while 1:
+            privateport = random.randint(2001, 12000)
+            if privateport not in usedPort:
+                return privateport
+
+    def noticeCreatePort(self, userName, port, host):
+        threads[userName].messageWords(f"[portCreate] {port} {host}")
+
+    def noticeConnectPort(self, userName, port, host):
+        threads[userName].messageWords(f"[portConnect] {port} {host}")
 
     def receiveWords(self):
         response = self.clientSocket.recv(1024).decode()
