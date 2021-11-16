@@ -13,8 +13,6 @@ import sys
 import time
 import threading
 
-from help import receive
-
 # the imformation lists is here
 credentials = "credentials.txt"
 userDataLoc = "userData.json"
@@ -96,6 +94,7 @@ class ClientThread(Thread):
         self.clientAlive = True
 
     def run(self):
+        global onlineUser
         # the client have checked the user name is valid
         userName = self.clientSocket.recv(1024).decode()
 
@@ -107,6 +106,12 @@ class ClientThread(Thread):
                 sleepTime = blockTime - (time.time() - blockList[i][1])
                 if (sleepTime > 0):
                     time.sleep(sleepTime)
+
+        # check the user is online or not
+        if userName in onlineUser:
+            self.clientSocket.send("[error], this account is online".encode())
+        else:
+            self.clientSocket.send("[success]".encode())
 
         # get the password if the user name is in credential file
         # else return None
@@ -172,32 +177,24 @@ class ClientThread(Thread):
 
         # now assume the client enter the correct password
         # the timeout start
-        global onlineUser
         onlineUser.append(userName)
         message = ''
+        self.showOfflineMessage(userName)
         timeoutCounter = TimeoutCounter(
             timeoutDur, self.clientSocket, userName)
         timeoutCounter.start()
 
         while self.clientAlive:
-            # self.clientSocket.settimeout(timeoutDur)
+            self.clientSocket.settimeout(timeoutDur)
             # use recv() to receive message from the client
             # delete the duplicate
-            result = []
-            seen = set()
-            for user in onlineUser:
-                if user not in seen:
-                    seen.add(user)
-                    result.append(user)
-
-            onlineUser = result
+            print(onlineUser)
             try:
-                # self.showMessage(userName)
                 data = self.clientSocket.recv(1024)
                 message = data.decode()
-                global noNewContent
-                if not message.startswith("receive"):
-                    noNewContent = False
+                # global noNewContent
+                # if not message.startswith("receive"):
+                #     noNewContent = False
                 messageWords = message.split(" ")
             except:
                 if userName in onlineUser:
@@ -239,7 +236,12 @@ class ClientThread(Thread):
                         self.clientSocket.send(
                             f"you have been blocked by {messageWords[1]}".encode())
                     else:
-                        self.message(userName, messageWords[1], resultMessage)
+                        if messageWords[1] not in onlineUser:
+                            self.offlineMessage(
+                                userName, messageWords[1], resultMessage)
+                        else:
+                            threads[messageWords[1]].messageWords(
+                                f"[{userName}]: {resultMessage}")
                         self.clientSocket.send(
                             "message send successful".encode())
 
@@ -281,11 +283,13 @@ class ClientThread(Thread):
                     for i in range(1, len(messageWords)):
                         resultMessage = resultMessage + " " + messageWords[i]
                     for user in self.whoelseList(userName):
-                        self.message(userName, user, resultMessage)
+                        threads[user].messageWords(
+                            f"[{userName}] {resultMessage}")
                     self.clientSocket.send("broadcast successfully".encode())
 
-            elif messageWords[0] == "receive":
-                self.showMessage(userName)
+            # elif messageWords[0] == "receive":
+            #     print("==receive==")
+            #     self.showOfflineMessage(userName)
 
             elif messageWords[0] == "whoelsesince":
                 if len(messageWords) != 2:
@@ -305,10 +309,10 @@ class ClientThread(Thread):
                     return
 
             else:
-                if (not str(message).startswith("receive")):
-                    self.clientSocket.send(
-                        "Sorry, I don't understand".encode())
-                    print(message)
+                # if (not str(message).startswith("receive")):
+                self.clientSocket.send(
+                    "Sorry, I don't understand".encode())
+                # print(message)
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
         Each api can be used to handle one specific function, for example:
@@ -364,10 +368,10 @@ class ClientThread(Thread):
             f.truncate()
         f.close()
 
-    def message(self, userName, targetUser, message):
+    def offlineMessage(self, userName, targetUser, message):
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
-            resultMessage = userName + " " + message
+            resultMessage = f"[offline] {userName} {message}"
             data[targetUser]['message'].append(resultMessage)
             f.seek(0)
             json.dump(data, f, indent=4)
@@ -375,22 +379,22 @@ class ClientThread(Thread):
         f.close()
         return
 
-    def showMessage(self, userName):
+    def showOfflineMessage(self, userName):
         time.sleep(0.1)
         with open(userDataLoc, 'r+') as f:
             data = json.load(f)
             if not data[userName]['message']:
                 return
             else:
-                messageNotice = data[userName]['message']
-                print(messageNotice)
+                # messageNotice = data[userName]['message']
+                # print(messageNotice)
                 for message in data[userName]['message']:
                     splitmessage = message.split(" ")
                     messageWord = ""
-                    for i in range(1, len(splitmessage)):
+                    for i in range(2, len(splitmessage)):
                         messageWord = messageWord + splitmessage[i] + " "
                     self.clientSocket.send(
-                        f"[{splitmessage[0]}]:{messageWord}\n".encode())
+                        f"[offline] [{splitmessage[1]}]: {messageWord}\n".encode())
                     data[userName]['message'].remove(message)
                 f.seek(0)
                 json.dump(data, f, indent=4)
@@ -494,6 +498,7 @@ class ClientThread(Thread):
         request = " [private request] " + userName + \
             f" {self.clientAddress[0]}" + f" {self.clientAddress[1]}" + \
             " want to start a private connection"
+        # TODO
         self.message(userName, targetuser, request)
         # reached
         # receive the answer

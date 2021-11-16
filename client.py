@@ -152,19 +152,6 @@ class ReceiveServer(Thread):
                 print(receivedMessage)
 
 
-class ReceiveMessage(Thread):
-    def __init__(self, clientsocket):
-        Thread.__init__(self)
-        self.clientsocket = clientsocket
-
-    def run(self):
-        # global lock
-        while 1:
-            with lock:
-                self.clientsocket.sendall("receive".encode())
-                time.sleep(1)
-
-
 # Server would be running on the same host as Client
 if len(sys.argv) != 3:
     print("\n===== Error usage, python3 TCPClient3.py SERVER_IP SERVER_PORT ======\n")
@@ -188,9 +175,14 @@ while 1:
         clientSocket.send(userName.encode())
         break
 
+onlineCheck = clientSocket.recv(1024).decode()
+print(f"online check: {onlineCheck}")
+if ("[error]" in onlineCheck):
+    exit()
+
 # receive the comfirmation message of the user name
-userName = clientSocket.recv(1024).decode()
-print(userName)
+nameCheck = clientSocket.recv(1024).decode()
+print(nameCheck)
 # get the password not, create a new password or check the password is done by server
 passwordNote = clientSocket.recv(1024).decode()
 # send the correct format password to server
@@ -219,9 +211,7 @@ for i in range(3):
 # clientSocket.send("offline")
 inputThread = InputThread(clientSocket)
 receiveServer = ReceiveServer(clientSocket)
-receiveMessage = ReceiveMessage(clientSocket)
 inputThread.start()
 receiveServer.start()
-receiveMessage.start()
 with lock:
     clientSocket.send("broadcast join the chat\n".encode())
