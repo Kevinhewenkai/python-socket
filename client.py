@@ -57,16 +57,30 @@ class InputThread(Thread):
                 for i in range(2, len(words)):
                     outMessage = outMessage + " " + words[i]
                 # find the corresponding socket
-                targetSocket = privateChatSocket[targetuser]
-                print(targetSocket)
-                with lock:
-                    targetSocket.send(
-                        f"[{self.username}][private] {outMessage}".encode())
-                print("send successfully")
+                try:
+                    targetSocket = privateChatSocket[targetuser]
+                    print(targetSocket)
+                    with lock:
+                        targetSocket.send(
+                            f"[{self.username}][private] {outMessage}".encode())
+                    print("send successfully")
+                except:
+                    print("[error] don't have p2p connection")
                 continue
+            elif words[0] == "stopprivate":
+                if len(words) < 2:
+                    print("[error], stopprivate <user>")
+                    continue
+                targetuser = words[1]
+                if targetuser not in privateContact:
+                    print(f"[error], no p2p with {targetuser}")
+                else:
+                    privateChatSocket.pop(targetuser, None)
+                    privateContact.remove(targetuser)
+                    print("[stop private] success")
 
-            # receive the notice from the receive thread
-            # give the server port number
+                # receive the notice from the receive thread
+                # give the server port number
             global privateMessage
             global user1
             global user2
@@ -76,7 +90,7 @@ class InputThread(Thread):
                         self.clientsocket.send(
                             f"[responseY] {user1} {user2} {host}".encode())
                         time.sleep(0.1)
-                    privateContact.append(user1)
+                    # privateContact.append(user1)
                     privateMessage = False
                 elif ("no") in message:
                     with lock:
@@ -136,6 +150,7 @@ class ReceiveServer(Thread):
                 privateport = messageWords[index + 1]
                 privatehost = messageWords[index + 2]
                 targetUserName = messageWords[index + 3]
+                privateContact.append(targetUserName)
                 # TODO
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
@@ -144,9 +159,11 @@ class ReceiveServer(Thread):
                 privateSocket.listen(1)
                 csocket, clientAddress = privateSocket.accept()
                 privateChatSocket[targetUserName] = csocket
-                while 1:
-                    data = csocket.recv(1024).decode()
-                    print(data)
+                # while 1:
+                #     data = csocket.recv(1024).decode()
+                #     print(data)
+                newThread = PrivateReceiveServer(csocket)
+                newThread.start()
             elif "[portConnect]" in receivedMessage:
                 time.sleep(0.1)
                 messageWords = receivedMessage.split(" ")
@@ -154,14 +171,17 @@ class ReceiveServer(Thread):
                 privateport = messageWords[index + 1]
                 privatehost = messageWords[index + 2]
                 targetUserName = messageWords[index + 3]
+                privateContact.append(targetUserName)
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
                 print(address)
                 privateSocket.connect(address)
                 privateChatSocket[targetUserName] = privateSocket
-                while 1:
-                    data = privateSocket.recv(1024).decode()
-                    print(data)
+                # while 1:
+                #     data = privateSocket.recv(1024).decode()
+                #     print(data)
+                newThread = PrivateReceiveServer(privateSocket)
+                newThread.start()
                 # privateChatAddress[privateUserName] = priva
                 # delete the duplicate
                 # print(privateChatAddress)
@@ -170,15 +190,14 @@ class ReceiveServer(Thread):
 
 
 class PrivateReceiveServer(Thread):
-    def __init__(self, sourceSocket, privateSocket):
+    def __init__(self, privateSocket):
         Thread.__init__(self)
-        self.sourceSocket = sourceSocket
         self.privateSocket = privateSocket
 
     def run(self):
         while 1:
-            data = self.privateSocket.recv(1024)
-            self.sourceSocket.send(data)
+            data = self.privateSocket.recv(1024).decode()
+            print(data)
 
 
 # Server would be running on the same host as Client
