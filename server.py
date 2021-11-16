@@ -106,7 +106,7 @@ class ClientThread(Thread):
         for i in range(len(blockList)):
             if userName == blockList[i][0]:
                 self.clientSocket.send(
-                    "Your account is blocked due to multiple login failures. Please try again later".encode())
+                    "[error] Your account is blocked due to multiple login failures. Please try again later".encode())
                 sleepTime = blockTime - (time.time() - blockList[i][1])
                 if (sleepTime > 0):
                     time.sleep(sleepTime)
@@ -127,7 +127,10 @@ class ClientThread(Thread):
         else:
             password = password.strip()
             isNewUser = False
-            self.clientSocket.send("password: ".encode())
+            try:
+                self.clientSocket.send("password: ".encode())
+            except:
+                print("")
 
         # check the password
         i = 0
@@ -148,6 +151,8 @@ class ClientThread(Thread):
                     'active_period': []
                 }
                 self.addUserData(userName, userInfor)
+                onlineUser.append(userName)
+                threads[userName] = self
                 break
             if clientPassword == password:
                 self.clientSocket.send("welcome".encode())
@@ -173,7 +178,7 @@ class ClientThread(Thread):
                         "Invalid Password. Please try again".encode())
                 else:
                     self.clientSocket.send(
-                        "Invalid Password. Your account has been blocked. Please try again later".encode())
+                        "[block] Invalid Password. Your account has been blocked. Please try again later".encode())
                     blockList.append((userName, time.time()))
                     self.clientAlive = False
                     time.sleep(blockTime)
@@ -184,9 +189,9 @@ class ClientThread(Thread):
         onlineUser.append(userName)
         message = ''
         self.showOfflineMessage(userName)
-        timeoutCounter = TimeoutCounter(
-            timeoutDur, self.clientSocket, userName)
-        timeoutCounter.start()
+        # timeoutCounter = TimeoutCounter(
+        #     timeoutDur, self.clientSocket, userName)
+        # timeoutCounter.start()
 
         while self.clientAlive:
             self.clientSocket.settimeout(timeoutDur)
@@ -325,7 +330,8 @@ class ClientThread(Thread):
             elif messageWords[0] == "[responseN]":
                 threads[createSocketUser].messageWords(
                     "the user reject private connection")
-
+            elif messageWords[0] == "yes" or messageWords[0] == "no":
+                continue
             else:
                 # if (not str(message).startswith("receive")):
                 self.clientSocket.send(
@@ -515,6 +521,11 @@ class ClientThread(Thread):
         # send [private request]
         # TODO random a port number and create a socket then this socket will keep listening
 
+        if userName == targetuser:
+            self.clientSocket.send(
+                "[error], user name == target user".encode()
+            )
+            return
         request = f" [private request] {userName} {self.clientAddress[0]} -> {targetuser}"
         threads[targetuser].messageWords(request)
 
@@ -540,34 +551,34 @@ class ClientThread(Thread):
         self.clientSocket.send(message.encode())
 
 
-class TimeoutCounter(Thread):
-    def __init__(self, timeoutDur, clientSocket, userName):
-        Thread.__init__(self)
-        self.clientSocket = clientSocket
-        self.timeoutDur = timeoutDur
-        self.userName = userName
+# class TimeoutCounter(Thread):
+#     def __init__(self, timeoutDur, clientSocket, userName):
+#         Thread.__init__(self)
+#         self.clientSocket = clientSocket
+#         self.timeoutDur = timeoutDur
+#         self.userName = userName
 
-    def run(self):
-        startTime = time.time()
-        timeout = False
-        global noNewContent
-        global onlineUser
-        while not timeout:
-            if noNewContent:
-                now = time.time()
-                if (now - startTime) > self.timeoutDur:
-                    try:
-                        self.clientSocket.send(
-                            "sorry you are timeout".encode())
-                        onlineUser.remove(self.userName)
-                    except:
-                        print("timeout")
-                    timeout = True
-                    time.sleep(0.1)
-                    break
-            else:
-                noNewContent = True
-                startTime = time.time()
+#     def run(self):
+#         startTime = time.time()
+#         timeout = False
+#         global noNewContent
+#         global onlineUser
+#         while not timeout:
+#             if noNewContent:
+#                 now = time.time()
+#                 if (now - startTime) > self.timeoutDur:
+#                     try:
+#                         self.clientSocket.send(
+#                             "sorry you are timeout".encode())
+#                         onlineUser.remove(self.userName)
+#                     except:
+#                         print("timeout")
+#                     timeout = True
+#                     time.sleep(0.1)
+#                     break
+#             else:
+#                 noNewContent = True
+#                 startTime = time.time()
 
 
 print("\n===== Server is running =====")

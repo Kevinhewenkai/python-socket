@@ -95,9 +95,11 @@ class InputThread(Thread):
                 elif ("no") in message:
                     with lock:
                         self.clientsocket.send("[responseN]".encode())
+                        time.sleep(0.1)
                     privateMessage = False
                 else:
                     message = input("====please type yes or no====\n")
+                    time.sleep(0.1)
             with lock:
                 self.clientsocket.sendall(message.encode())
             time.sleep(0.1)
@@ -132,7 +134,7 @@ class ReceiveServer(Thread):
             # tell the input thread
             elif "[private request]" in receivedMessage:
                 # reached
-                print("========get the first request========")
+                print("========input yes or no========")
                 global privateMessage
                 privateMessage = True
                 global user1
@@ -154,7 +156,7 @@ class ReceiveServer(Thread):
                 # TODO
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
-                print(address)
+                # print(address)
                 privateSocket.bind(address)
                 privateSocket.listen(1)
                 csocket, clientAddress = privateSocket.accept()
@@ -174,7 +176,7 @@ class ReceiveServer(Thread):
                 privateContact.append(targetUserName)
                 privateSocket = socket(AF_INET, SOCK_STREAM)
                 address = (privatehost, int(privateport))
-                print(address)
+                # print(address)
                 privateSocket.connect(address)
                 privateChatSocket[targetUserName] = privateSocket
                 # while 1:
@@ -182,6 +184,8 @@ class ReceiveServer(Thread):
                 #     print(data)
                 newThread = PrivateReceiveServer(privateSocket)
                 newThread.start()
+            elif "[block]" in receivedMessage:
+                os._exit(1)
                 # privateChatAddress[privateUserName] = priva
                 # delete the duplicate
                 # print(privateChatAddress)
@@ -196,8 +200,12 @@ class PrivateReceiveServer(Thread):
 
     def run(self):
         while 1:
-            data = self.privateSocket.recv(1024).decode()
-            print(data)
+            try:
+                data = self.privateSocket.recv(1024).decode()
+                print(data)
+            except:
+                print("the source socket is timeout")
+                break
 
 
 # Server would be running on the same host as Client
@@ -224,7 +232,7 @@ while 1:
         break
 
 onlineCheck = clientSocket.recv(1024).decode()
-print(f"online check: {onlineCheck}")
+print(f"{onlineCheck}")
 if ("[error]" in onlineCheck):
     exit()
 
